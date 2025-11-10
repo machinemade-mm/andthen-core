@@ -94,6 +94,20 @@
 			const isEditing = $editState.isEditing;
 			const inTopBar = $navigationState.topBarIndex >= 0;
 
+		// When settings modal is open, block all navigation
+		if (showSettings) {
+			if (e.key === 'Escape') {
+				e.preventDefault();
+				showSettings = false;
+				return;
+			}
+			// Block all arrow keys and navigation when settings is open
+			if (e.key.startsWith('Arrow') || e.key === ' ' || e.key === 'Enter') {
+				e.preventDefault();
+				return;
+			}
+		}
+
 			// When project type menu is open, prevent all navigation except closing
 			if ($showProjectTypeMenu) {
 				if (e.key === 'ArrowLeft' || e.key === 'Escape') {

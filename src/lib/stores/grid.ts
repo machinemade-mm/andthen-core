@@ -4,7 +4,7 @@
  */
 
 import { writable, derived, get } from 'svelte/store';
-import { projectsAPI, tasksAPI, goalsAPI } from '$lib/api/client';
+import { projectsAPI, tasksAPI } from '$lib/api/client';
 import { debounce } from '$lib/utils/debounce';
 
 // Types

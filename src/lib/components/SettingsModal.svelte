@@ -55,12 +55,82 @@
 				throw new Error('Invalid backup file format');
 			}
 
-			// TODO: Import the data to the database
-			// For now, just show a message
-			alert('⚠️ Import functionality coming soon!\n\nFor now, you can manually restore by:\n1. Stopping the app\n2. Replacing andthen.db with your backup\n3. Restarting the app');
+			// Warn user and auto-backup current data
+			const confirmed = confirm(
+				'⚠️ WARNING: This will replace ALL your current data!\n\n' +
+				'Before importing, your current data will be automatically backed up.\n\n' +
+				'Continue with import?'
+			);
+
+			if (!confirmed) {
+				if (fileInput) fileInput.value = '';
+				return;
+			}
+
+			// Auto-backup current data before importing
+			const currentProjects = get(projects);
+			const backupData = {
+				version: '1.0',
+				exportDate: new Date().toISOString(),
+				projects: currentProjects
+			};
+			const backupBlob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+			const backupUrl = URL.createObjectURL(backupBlob);
+			const backupLink = document.createElement('a');
+			backupLink.href = backupUrl;
+			backupLink.download = `andthen-backup-before-import-${new Date().toISOString().split('T')[0]}.json`;
+			backupLink.click();
+			URL.revokeObjectURL(backupUrl);
+
+			// Delete all existing projects
+			for (const project of currentProjects) {
+				await fetch(`/api/projects/${project.id}`, {
+					method: 'DELETE'
+				});
+			}
+
+			// Import new projects and tasks
+			for (const project of importedData.projects) {
+				// Create project
+				const projectResponse = await fetch('/api/projects', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({
+						name: project.name,
+						type: project.type || 'project',
+						goalDescription: project.goal_description || null,
+						position: project.position
+					})
+				});
+
+				if (!projectResponse.ok) {
+					throw new Error(`Failed to import project: ${project.name}`);
+				}
+
+				const { project: newProject } = await projectResponse.json();
+
+				// Create tasks for this project
+				if (project.tasks && project.tasks.length > 0) {
+					for (const task of project.tasks) {
+						await fetch(`/api/projects/${newProject.id}/tasks`, {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/json' },
+							body: JSON.stringify({
+								content: task.content,
+								position: task.position
+							})
+						});
+					}
+				}
+			}
 
 			// Reset the file input
 			if (fileInput) fileInput.value = '';
+
+			alert('✅ Data imported successfully! The page will reload.');
+
+			// Reload the page to refresh state
+			window.location.reload();
 		} catch (error) {
 			alert('❌ Failed to import data: ' + (error instanceof Error ? error.message : 'Unknown error'));
 			if (fileInput) fileInput.value = '';
