@@ -10,6 +10,32 @@
 	}>();
 
 	let fileInput: HTMLInputElement;
+	let selectedIndex = 0;
+	const totalButtons = 3; // Export, Import, Clear All Data
+
+	function handleKeyDown(e: KeyboardEvent) {
+		if (!visible) return;
+
+		if (e.key === 'ArrowDown') {
+			e.preventDefault();
+			selectedIndex = (selectedIndex + 1) % totalButtons;
+		} else if (e.key === 'ArrowUp') {
+			e.preventDefault();
+			selectedIndex = (selectedIndex - 1 + totalButtons) % totalButtons;
+		} else if (e.key === 'Enter') {
+			e.preventDefault();
+			if (selectedIndex === 0) {
+				exportData();
+			} else if (selectedIndex === 1) {
+				triggerImport();
+			} else if (selectedIndex === 2) {
+				clearAllData();
+			}
+		} else if (e.key === 'Escape') {
+			e.preventDefault();
+			close();
+		}
+	}
 
 	function close() {
 		dispatch('close');
@@ -186,6 +212,8 @@
 	const license = 'AGPL-3.0';
 </script>
 
+<svelte:window on:keydown={handleKeyDown} />
+
 <input
 	type="file"
 	accept=".json"
@@ -207,7 +235,7 @@
 				<section class="settings-section">
 					<h3>📦 Data Management</h3>
 					<div class="settings-group">
-						<button class="settings-btn" on:click={exportData}>
+						<button class="settings-btn" class:selected={selectedIndex === 0} on:click={exportData}>
 							<span class="btn-icon">💾</span>
 							<div class="btn-content">
 								<div class="btn-title">Export Data</div>
@@ -215,7 +243,7 @@
 							</div>
 						</button>
 
-						<button class="settings-btn" on:click={triggerImport}>
+						<button class="settings-btn" class:selected={selectedIndex === 1} on:click={triggerImport}>
 							<span class="btn-icon">📥</span>
 							<div class="btn-content">
 								<div class="btn-title">Import Data</div>
@@ -223,7 +251,7 @@
 							</div>
 						</button>
 
-						<button class="settings-btn danger" on:click={clearAllData}>
+						<button class="settings-btn danger" class:selected={selectedIndex === 2} on:click={clearAllData}>
 							<span class="btn-icon">🗑️</span>
 							<div class="btn-content">
 								<div class="btn-title">Clear All Data</div>
@@ -383,9 +411,21 @@
 		border-color: var(--color-primary);
 	}
 
+	.settings-btn.selected {
+		background: var(--color-surface);
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 4px rgba(184, 90, 92, 0.3);
+	}
+
 	.settings-btn.danger:hover {
 		border-color: #dc3545;
 		background: rgba(220, 53, 69, 0.1);
+	}
+
+	.settings-btn.danger.selected {
+		border-color: #dc3545;
+		background: rgba(220, 53, 69, 0.15);
+		box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.2);
 	}
 
 	.btn-icon {
