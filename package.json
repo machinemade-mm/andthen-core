@@ -1,0 +1,38 @@
+{
+  "name": "@andthen/core",
+  "version": "0.1.0",
+  "description": "And Then? - Open source keyboard-first task management. Run locally, unlimited everything.",
+  "license": "AGPL-3.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
+    "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "db:migrate": "node database/migrate.js",
+    "postinstall": "npm run db:migrate"
+  },
+  "dependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "bcrypt": "^5.1.1",
+    "better-sqlite3": "^12.4.1",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "^5.2.9",
+    "@sveltejs/kit": "^2.11.1",
+    "@sveltejs/vite-plugin-svelte": "^4.0.2",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.7",
+    "@types/node": "^22.10.1",
+    "svelte": "^5.2.7",
+    "svelte-check": "^4.0.8",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
