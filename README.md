@@ -23,6 +23,24 @@ npm run dev
 
 Open http://localhost:5173 and start creating!
 
+## Security Configuration
+
+**⚠️ IMPORTANT:** Before deploying to production or exposing to the internet:
+
+1. Create a `.env` file from `.env.example`:
+   ```bash
+   cp .env.example .env
+   ```
+
+2. **Generate a strong JWT secret:**
+   ```bash
+   openssl rand -base64 32
+   ```
+
+3. Replace `JWT_SECRET` in your `.env` file with the generated value
+
+**Never use the default JWT_SECRET in production!** The default value is publicly visible in this repository and is only safe for local development.
+
 ## Data Persistence
 
 **Your data is safe!** All your tasks, projects, and goals are stored in a local SQLite database file: `andthen.db`

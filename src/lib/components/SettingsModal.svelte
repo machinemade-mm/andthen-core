@@ -186,7 +186,7 @@
 
 						<div class="info-item full-width">
 							<div class="info-label">Source Code</div>
-							<a href="https://github.com/yourusername/andthenwhat-core" target="_blank" rel="noopener noreferrer" class="info-link">
+							<a href="https://github.com/machinemade-mm/andthen-core" target="_blank" rel="noopener noreferrer" class="info-link">
 								🔗 GitHub Repository
 							</a>
 						</div>
