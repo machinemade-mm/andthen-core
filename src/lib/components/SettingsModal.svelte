@@ -18,6 +18,16 @@
 		selectedIndex = 0;
 	}
 
+	// Auto-scroll selected item into view
+	$: if (visible && selectedIndex >= 0) {
+		setTimeout(() => {
+			const selectedElements = document.querySelectorAll('.settings-btn.selected, .info-item.selected');
+			if (selectedElements.length > 0) {
+				selectedElements[0].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+			}
+		}, 50);
+	}
+
 	function handleKeyDown(e: KeyboardEvent) {
 		if (!visible) return;
 
