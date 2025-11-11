@@ -11,7 +11,12 @@
 
 	let fileInput: HTMLInputElement;
 	let selectedIndex = 0;
-	const totalButtons = 3; // Export, Import, Clear All Data
+	const totalButtons = 6; // Export, Import, Clear, Database, GitHub, Upgrade
+
+	// Reset selection when modal opens
+	$: if (visible) {
+		selectedIndex = 0;
+	}
 
 	function handleKeyDown(e: KeyboardEvent) {
 		if (!visible) return;
@@ -30,6 +35,12 @@
 				triggerImport();
 			} else if (selectedIndex === 2) {
 				clearAllData();
+			} else if (selectedIndex === 3) {
+				openDatabaseLocation();
+			} else if (selectedIndex === 4) {
+				window.open('https://github.com/machinemade-mm/andthen-core', '_blank');
+			} else if (selectedIndex === 5) {
+				window.open('https://andthenwhat.app', '_blank');
 			}
 		} else if (e.key === 'Escape') {
 			e.preventDefault();
@@ -275,21 +286,21 @@
 							<div class="info-value">{license}</div>
 						</div>
 
-						<div class="info-item full-width">
+						<div class="info-item full-width" class:selected={selectedIndex === 3}>
 							<div class="info-label">Database</div>
 							<button class="info-link" on:click={openDatabaseLocation}>
 								📁 View Location
 							</button>
 						</div>
 
-						<div class="info-item full-width">
+						<div class="info-item full-width" class:selected={selectedIndex === 4}>
 							<div class="info-label">Source Code</div>
 							<a href="https://github.com/machinemade-mm/andthen-core" target="_blank" rel="noopener noreferrer" class="info-link">
 								🔗 GitHub Repository
 							</a>
 						</div>
 
-						<div class="info-item full-width">
+						<div class="info-item full-width" class:selected={selectedIndex === 5}>
 							<div class="info-label">Upgrade</div>
 							<a href="https://andthenwhat.app" target="_blank" rel="noopener noreferrer" class="info-link upgrade">
 								⭐ Get AI Features & Cloud Sync
@@ -469,6 +480,12 @@
 
 	.info-item.full-width {
 		grid-column: 1 / -1;
+	}
+
+	.info-item.selected {
+		background: var(--color-surface);
+		border-color: var(--color-primary);
+		box-shadow: 0 0 0 4px rgba(184, 90, 92, 0.3);
 	}
 
 	.info-label {
