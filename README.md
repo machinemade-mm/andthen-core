@@ -58,4 +58,4 @@ AGPL-3.0 - see LICENSE file
 
 ---
 
-Made with ❤️ for keyboard warriors everywhere
+Made for keyboard people.
