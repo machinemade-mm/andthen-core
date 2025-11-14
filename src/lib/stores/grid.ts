@@ -353,7 +353,7 @@ export const navigationActions = {
 	 */
 	moveTopBarRight() {
 		navigationState.update(state => {
-			// topBarIndex: 0 = Settings, 1 = Dark Mode, 2 = Logout
+			// topBarIndex: 0 = Settings, 1 = Dark Mode, 2 = Upgrade
 			if (state.topBarIndex >= 0 && state.topBarIndex < 2) {
 				return { ...state, topBarIndex: state.topBarIndex + 1 };
 			}

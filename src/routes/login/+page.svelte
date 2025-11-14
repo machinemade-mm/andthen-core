@@ -46,8 +46,8 @@
 <div class="auth-container">
 	<div class="auth-card">
 		<div class="logo">
-			<h1>AndThenWhat?</h1>
-			<p class="tagline">Keyboard-first task management</p>
+			<h1>and then?</h1>
+			<p class="tagline">AI task management made for keyboard people.</p>
 		</div>
 
 		<form on:submit|preventDefault={handleSubmit}>
@@ -131,10 +131,12 @@
 	}
 
 	.logo h1 {
+		font-family: 'Cooper Black', cursive;
 		font-size: 2.5rem;
 		color: var(--color-primary);
 		margin: 0 0 var(--spacing-xs) 0;
-		font-weight: 700;
+		font-weight: 900;
+		font-style: italic;
 	}
 
 	.tagline {

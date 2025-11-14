@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import ProjectColumn from './ProjectColumn.svelte';
 	import ColumnVisualizer from './ColumnVisualizer.svelte';
 	import ProjectTypeMenu from './ProjectTypeMenu.svelte';
@@ -70,14 +70,28 @@
 									e.preventDefault();
 									editActions.cancelEdit();
 									if (e.key === 'ArrowLeft') {
-										navigationActions.moveLeft();
+										moveLeftWithProximity();
 										scrollToColumn($navigationState.columnIndex);
 									} else {
-										await navigationActions.moveRight();
+										await moveRightWithProximity();
 										scrollToColumn($navigationState.columnIndex);
 									}
 									return;
 								}
+							}
+
+							// For existing task editing, cancel edit mode on left/right navigation
+							if (!$editState.newTaskProjectId && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+								e.preventDefault();
+								editActions.cancelEdit();
+								if (e.key === 'ArrowLeft') {
+									moveLeftWithProximity();
+									scrollToColumn($navigationState.columnIndex);
+								} else {
+									await moveRightWithProximity();
+									scrollToColumn($navigationState.columnIndex);
+								}
+								return;
 							}
 
 							// For all other cases when editing, let arrow keys work naturally for text cursor movement
@@ -151,17 +165,21 @@
 			// Navigation keys
 			if (e.key === 'ArrowRight' && !isEditing) {
 				e.preventDefault();
-				await navigationActions.moveRight();
+				await moveRightWithProximity();
 				scrollToColumn($navigationState.columnIndex);
 			} else if (e.key === 'ArrowLeft' && !isEditing) {
 				e.preventDefault();
-				navigationActions.moveLeft();
+				moveLeftWithProximity();
 				scrollToColumn($navigationState.columnIndex);
 			} else if (e.key === 'ArrowDown' && !isEditing) {
 				e.preventDefault();
 				const project = $currentProject;
 				if (project && (project.tasks.length === 0 || $navigationState.taskIndex === project.tasks.length - 1)) {
 					// At end of column or empty project, start creating new task
+					// If on title, move down first to remove title focus
+					if ($navigationState.taskIndex === -1) {
+						navigationActions.moveDown();
+					}
 					editActions.startNewTask(project.id);
 				} else {
 					navigationActions.moveDown();
@@ -186,9 +204,13 @@
 
 				// If no projects exist, create the first project and edit its name
 				if ($projects.length === 0) {
+					// Clear focus first to ensure clean state
+					navigationState.set({ columnIndex: -1, taskIndex: -1, topBarIndex: -1 });
+					await tick();
 					await gridActions.createProject('Name your project');
+					await tick(); // Wait for new project to render
 					// Navigate to the new project
-					navigationState.set({ columnIndex: $projects.length, taskIndex: -1, topBarIndex: -1 });
+					navigationState.set({ columnIndex: $projects.length - 1, taskIndex: -1, topBarIndex: -1 });
 					// Trigger project name edit
 					setTimeout(() => {
 						const newProjectColumn = gridContainer.querySelector('.project-column:last-child .project-name') as HTMLElement;
@@ -288,6 +310,86 @@
 		}
 	}
 
+	/**
+	 * Calculate the closest task index in target column based on visual proximity
+	 */
+	function getClosestTaskIndex(currentColumnIndex: number, currentTaskIndex: number, targetColumnIndex: number): number {
+		if (!gridContainer) return 0;
+
+		const columns = gridContainer.querySelectorAll('.project-column');
+		const currentColumn = columns[currentColumnIndex];
+		const targetColumn = columns[targetColumnIndex];
+
+		if (!currentColumn || !targetColumn) return 0;
+
+		// Get the target project
+		const targetProject = $projects[targetColumnIndex];
+		if (!targetProject || targetProject.tasks.length === 0) return -1;
+
+		// If on project title, return project title in target column
+		if (currentTaskIndex === -1) return -1;
+
+		// Get current task element
+		const currentTasks = currentColumn.querySelectorAll('.task-item');
+		const currentTask = currentTasks[currentTaskIndex];
+		if (!currentTask) return 0;
+
+		// Get current task's vertical midpoint
+		const currentRect = currentTask.getBoundingClientRect();
+		const currentMidpoint = currentRect.top + currentRect.height / 2;
+
+		// Get all tasks in target column
+		const targetTasks = targetColumn.querySelectorAll('.task-item');
+		if (targetTasks.length === 0) return -1;
+
+		// Find the closest task
+		let closestIndex = 0;
+		let closestDistance = Infinity;
+
+		targetTasks.forEach((task, index) => {
+			const rect = task.getBoundingClientRect();
+			const midpoint = rect.top + rect.height / 2;
+			const distance = Math.abs(midpoint - currentMidpoint);
+
+			if (distance < closestDistance) {
+				closestDistance = distance;
+				closestIndex = index;
+			}
+		});
+
+		return closestIndex;
+	}
+
+	/**
+	 * Move right with visual proximity navigation
+	 */
+	async function moveRightWithProximity() {
+		const state = $navigationState;
+		const projectsList = $projects;
+
+		if (state.columnIndex < projectsList.length - 1) {
+			// Calculate closest task in target column
+			const targetTaskIndex = getClosestTaskIndex(state.columnIndex, state.taskIndex, state.columnIndex + 1);
+			navigationActions.setPosition(state.columnIndex + 1, targetTaskIndex);
+		} else {
+			// At last project, show project type menu
+			await navigationActions.moveRight();
+		}
+	}
+
+	/**
+	 * Move left with visual proximity navigation
+	 */
+	function moveLeftWithProximity() {
+		const state = $navigationState;
+
+		if (state.columnIndex > 0) {
+			// Calculate closest task in target column
+			const targetTaskIndex = getClosestTaskIndex(state.columnIndex, state.taskIndex, state.columnIndex - 1);
+			navigationActions.setPosition(state.columnIndex - 1, targetTaskIndex);
+		}
+	}
+
 	// Auto-scroll to focused column (only when column actually changes)
 	let lastColumnIndex = -1;
 	$: if ($navigationState.columnIndex >= 0 && $navigationState.columnIndex !== lastColumnIndex) {
@@ -351,11 +453,16 @@
 		const type = event.detail;
 		showProjectTypeMenu.set(false);
 
+		// Clear focus first to cleanly remove styling from old title
+		navigationState.set({ columnIndex: -1, taskIndex: -1, topBarIndex: -1 });
+		await tick(); // Let old title lose focus styling
+
 		if (type === 'project') {
 			// Create a simple project
 			const newProject = await gridActions.createProjectWithType('project', 'New Project');
+			await tick(); // Wait for new project to render
 			// Navigate to the new project
-			navigationState.set({ columnIndex: $projects.length, taskIndex: -1, topBarIndex: -1 });
+			navigationState.set({ columnIndex: $projects.length - 1, taskIndex: -1, topBarIndex: -1 });
 			// Trigger project name edit
 			setTimeout(() => {
 				const newProjectColumn = gridContainer.querySelector('.project-column:last-child .project-name') as HTMLElement;
@@ -366,8 +473,9 @@
 		} else {
 			// Create a goal with default name, user will edit it inline
 			const newGoal = await gridActions.createProjectWithType('goal', 'New Goal', 'New Goal');
+			await tick(); // Wait for new goal to render
 			// Navigate to the new goal
-			navigationState.set({ columnIndex: $projects.length, taskIndex: -1, topBarIndex: -1 });
+			navigationState.set({ columnIndex: $projects.length - 1, taskIndex: -1, topBarIndex: -1 });
 			// Trigger goal name edit
 			setTimeout(() => {
 				const newGoalColumn = gridContainer.querySelector('.project-column:last-child .project-name') as HTMLElement;
@@ -414,15 +522,16 @@
 				>
 					{$theme === 'dark' ? '☀️' : '🌙'} {$theme === 'dark' ? 'Light' : 'Dark'}
 				</button>
-				<a
-					href="https://andthenwhat.app"
-					target="_blank"
-					rel="noopener noreferrer"
-					class="upgrade-btn"
+				<button
+					class="top-bar-btn upgrade-btn"
+					class:focused={$navigationState.topBarIndex === 2}
+					on:click={() => window.open('https://andthenwhat.app', '_blank')}
+					type="button"
+					tabindex="-1"
 					title="Get AI suggestions, cloud sync, and team features"
 				>
 					⭐ Upgrade to Pro
-				</a>
+				</button>
 			</div>
 		</div>
 	</div>
@@ -435,13 +544,17 @@
 		{#if $projects.length === 0}
 			<div class="empty-grid">
 			<h1 class="welcome-title">and then?</h1>
-			<p class="welcome-subtitle">your keyboard-first task manager</p>
+			<p class="welcome-subtitle">AI task management made for keyboard people.</p>
 				<button
 					class="create-project-btn"
 					on:click={async () => {
+						// Clear focus first to ensure clean state
+						navigationState.set({ columnIndex: -1, taskIndex: -1, topBarIndex: -1 });
+						await tick();
 						await gridActions.createProject('Name your project');
+						await tick(); // Wait for new project to render
 						// Navigate to the new project
-						navigationState.set({ columnIndex: $projects.length, taskIndex: -1, topBarIndex: -1 });
+						navigationState.set({ columnIndex: $projects.length - 1, taskIndex: -1, topBarIndex: -1 });
 						// Trigger project name edit
 						setTimeout(() => {
 							const newProjectColumn = gridContainer.querySelector('.project-column:last-child .project-name') as HTMLElement;
@@ -560,9 +673,15 @@
 		box-shadow: 0 2px 4px rgba(184, 90, 92, 0.3);
 	}
 
-	.upgrade-btn:hover {
+	.upgrade-btn:hover:not(.focused) {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 8px rgba(184, 90, 92, 0.4);
+		background: var(--color-primary-dark);
+	}
+
+	.upgrade-btn.focused {
+		transform: translateY(-2px);
+		box-shadow: 0 0 0 4px rgba(184, 90, 92, 0.5);
 		background: var(--color-primary-dark);
 	}
 

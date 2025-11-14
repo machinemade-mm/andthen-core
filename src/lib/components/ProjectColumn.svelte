@@ -20,7 +20,7 @@
 	$: isGoal = project.type === 'goal';
 
 	$: isActiveColumn = $navigationState.columnIndex === columnIndex;
-	$: isProjectTitleFocused = isActiveColumn && $navigationState.taskIndex === -1;
+	$: isProjectTitleFocused = isActiveColumn && $navigationState.taskIndex === -1 && $navigationState.topBarIndex === -1;
 
 	let isEditingName = false;
 	let nameInput = project.name;
@@ -32,7 +32,7 @@
 		isEditingName = true;
 	}
 
-	async function saveName() {
+	async function saveName(keepFocus: boolean = false) {
 		// Exit edit mode immediately to prevent double-triggering
 		isEditingName = false;
 
@@ -53,15 +53,23 @@
 		} else {
 			nameInput = project.name || '';
 		}
+
+		// Only keep focus if explicitly requested (e.g., when pressing Enter)
+		if (keepFocus) {
+			navigationState.set({ columnIndex, taskIndex: -1, topBarIndex: -1 });
+		}
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
 		if (e.key === 'Enter') {
 			e.preventDefault();
-			saveName();
+			saveName(true); // Keep focus on title after Enter
 		} else if (e.key === 'Escape') {
 			nameInput = project.name;
 			isEditingName = false;
+		} else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+			// Cancel edit mode on left/right navigation, but don't force focus
+			saveName(false);
 		}
 	}
 
