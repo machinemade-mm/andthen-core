@@ -28,7 +28,14 @@
 	// Keep nameInput in sync with project.name
 	$: nameInput = isEditingName ? nameInput : (project.name || '');
 
+	// Clear edit mode when column becomes inactive
+	$: if (!isActiveColumn && isEditingName) {
+		isEditingName = false;
+		nameInput = project.name || '';
+	}
+
 	function handleNameEdit() {
+		if (!isActiveColumn) return;
 		isEditingName = true;
 	}
 
